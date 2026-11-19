@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WFT Companion</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --bg: #f6f3ec; --card: #fffdf8; --ink: #2b2620; --muted: #6f665a; --line: #e3dccd;
+    --accent: #9a6b12; --accent-ink: #fff; --ok: #2f7d32; --warn: #a15c00; --bad: #b3261e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #15130f; --card: #1f1c17; --ink: #ece6da; --muted: #a59b8b;
+      --line: #383128; --accent: #e0aa3e; --accent-ink: #1a1408; --ok: #7bc47f; --warn: #f0a640; --bad: #ff8a80; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  h1 { font-size: 22px; margin: 0; }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  .muted { color: var(--muted); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-top: 16px; }
+  .banner { border-left: 4px solid var(--warn); }
+  .banner.error { border-left-color: var(--bad); }
+  .banner.info { border-left-color: var(--accent); }
+  .pill { font-size: 13px; padding: 2px 10px; border-radius: 99px; border: 1px solid var(--line); }
+  .pill.ok { color: var(--ok); border-color: currentColor; }
+  .pill.wait { color: var(--warn); border-color: currentColor; }
+  .pill.bad { color: var(--bad); border-color: currentColor; }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .bar > span { display: block; height: 100%; width: 0; background: var(--accent); }
+  label.field { display: block; font-weight: 600; margin: 14px 0 4px; }
+  input[type=text], input[type=password] { width: 100%; padding: 9px 10px; border: 1px solid var(--line);
+    border-radius: 6px; background: var(--bg); color: var(--ink); font: inherit; }
+  .hint { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .choices button { margin: 6px 6px 0 0; }
+  #regionRow button[aria-pressed=true] { border-color: var(--ink); font-weight: 600; }
+  button { font: inherit; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--line);
+    background: var(--card); color: var(--ink); cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  button:disabled { opacity: .6; cursor: default; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; align-items: center; }
+  .checks label { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th.n, td.n { text-align: right; font-variant-numeric: tabular-nums; }
+  .table-wrap { overflow-x: auto; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; margin: 0; }
+  dt { color: var(--muted); }
+  dd { margin: 0; overflow-wrap: anywhere; }
+  .err { color: var(--bad); }
+  code { font-size: 13px; overflow-wrap: anywhere; }
+  .never li { margin: 3px 0; }
+  .group { margin-top: 14px; }
+  .group h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 4px; }
+  .step { font-size: 13px; color: var(--muted); float: right; }
+  .cats .group { margin-top: 12px; }
+  .cats .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0 12px; }
+  .cats .grid label { display: flex; gap: 6px; align-items: center; margin: 3px 0; }
+  pre { max-height: 360px; overflow: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+    padding: 10px; font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .notice .item { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 6px 0; }
+  h3.sub { font-size: 14px; margin: 0 0 6px; }
+  .line { margin: 3px 0; }
+  .line .who { font-weight: 600; }
+  details summary { cursor: pointer; color: var(--muted); }
+  .tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 16px; border-bottom: 1px solid var(--line); }
+  .tabs button { border: 1px solid transparent; border-bottom: none; border-radius: 8px 8px 0 0; background: none;
+    color: var(--muted); padding: 8px 14px; margin-bottom: -1px; }
+  .tabs button[aria-selected=true] { background: var(--card); color: var(--ink); border-color: var(--line); font-weight: 600; }
+  .tabs button .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); margin-left: 6px; vertical-align: middle; }
+  .savebar { position: sticky; bottom: 12px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>WFT Companion</h1>
+    <span id="pill" class="pill">…</span>
+  </header>
+  <p class="muted">Sends what the WoW Forever Guild Chronicle addon records to wowforevertracker.com.
+    It runs in the background, so you can close this page.</p>
+
+  <div id="wizard" hidden>
+    <section class="card" id="step1">
+      <h2>Before anything is sent</h2>
+      <p>This app sends what the WoW Forever Guild Chronicle addon records in your game to wowforevertracker.com.
+        Your guild's page shows it there.</p>
+      <p><strong>You choose what is sent.</strong> Nothing is sent until you finish here. You can change it later.</p>
+      <p style="margin-bottom:4px"><strong>What we never collect</strong></p>
+      <ul class="never">
+        <li>Chat or whisper text</li>
+        <li>Where other players are</li>
+        <li>Notes or private messages</li>
+        <li>Your Battle.net login or email</li>
+        <li>Anything else on your computer</li>
+      </ul>
+      <div class="row"><button class="primary" type="button" id="toStep2">Next: choose what to send</button></div>
+    </section>
+    <section class="card" id="step2" hidden>
+      <h2>What to send</h2>
+      <p class="muted" style="margin:0">Everything is ticked. Untick what you don't want to send. You can change this later.</p>
+      <div id="wizCats"></div>
+      <div class="checks" style="margin-top:12px"><label><input type="checkbox" id="includeExisting" checked>
+        <span id="existingLabel">Also send what the addon already saved</span></label></div>
+      <div class="row"><button type="button" id="back1">Back</button>
+        <button class="primary" type="button" id="toStep3">Next: sign in</button></div>
+    </section>
+    <section class="card" id="step3" hidden>
+      <h2>Your game folder and sign-in</h2>
+      <p class="muted" style="margin:0">Next, sign in with your WoW Forever Tracker account.</p>
+      <label class="field" for="wizDir">Your <span class="game">WoW Classic Era</span> folder</label>
+      <input id="wizDir" type="text" autocomplete="off" spellcheck="false">
+      <div id="wizDetected" class="choices"></div>
+      <div class="checks"><label><input type="checkbox" id="wizAuto"> Start with my computer (recommended)</label></div>
+      <p id="wizSummary" class="hint"></p>
+      <div class="row"><button type="button" id="back2">Back</button>
+        <button class="primary" type="button" id="agree">Agree and sign in</button>
+        <span id="agreeMsg" class="hint"></span></div>
+    </section>
+  </div>
+
+  <div id="app">
+  <section id="notice" class="card banner info notice" hidden></section>
+
+  <section id="banner" class="card banner" hidden></section>
+
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button type="button" role="tab" id="tabbtn-status" data-tab="status">Status</button>
+    <button type="button" role="tab" id="tabbtn-setup" data-tab="setup">Setup</button>
+    <button type="button" role="tab" id="tabbtn-upload" data-tab="upload">What to upload</button>
+    <button type="button" role="tab" id="tabbtn-updates" data-tab="updates">Updates</button>
+    <button type="button" role="tab" id="tabbtn-help" data-tab="help">Help</button>
+  </nav>
+
+  <div class="tabpanel" id="tab-status" data-tab="status" role="tabpanel" aria-labelledby="tabbtn-status" hidden>
+    <section class="card" id="accountCard">
+      <h2>Your account</h2>
+      <p id="accountText" style="margin:0"></p>
+      <div id="accountCodeBox" hidden style="margin-top:12px">
+        <div id="accountCode" style="font-size:28px;font-weight:700;letter-spacing:.08em"></div>
+        <div class="hint">Confirm this code in your browser. <a id="accountOpen" href="#" target="_blank" rel="noopener">Open the page again</a></div>
+      </div>
+      <div class="row" id="regionRow" hidden><span>Where do you play?</span>
+        <button type="button" data-region="eu">Europe</button><button type="button" data-region="us">Americas</button>
+        <button type="button" id="regionCancel">Cancel</button></div>
+      <div class="row" id="accountButtons">
+        <button class="primary" type="button" id="signInBtn" hidden>Sign in</button>
+        <button type="button" id="cancelBtn" hidden>Cancel</button>
+        <button type="button" id="changeRegionBtn" hidden>Change region</button>
+        <button type="button" id="signOutBtn" hidden>Sign out</button>
+      </div>
+      <div class="row" id="signOutConfirm" hidden>
+        <span>Sign out? Uploads stop until you sign in again.</span>
+        <button type="button" id="signOutYes">Sign out</button>
+        <button type="button" id="signOutNo">Cancel</button>
+      </div>
+      <p id="accountMsg" class="hint"></p>
+    </section>
+    <section class="card">
+      <h2>Status</h2>
+      <strong id="stateHeading"></strong>
+      <p id="stateLine" style="margin:2px 0 0" hidden></p>
+      <div id="progressBox" hidden style="margin-top:6px">
+        <div class="bar" role="progressbar" aria-label="Upload progress" id="progressBar"><span id="progressFill"></span></div>
+      </div>
+      <dl id="facts" style="margin-top:12px"></dl>
+      <div class="row">
+        <button type="button" id="syncNow">Upload now</button>
+        <span id="syncMsg" class="hint"></span>
+        <button type="button" id="quit">Stop the app</button>
+      </div>
+    </section>
+  </div>
+  <form id="setup">
+  <div class="tabpanel" id="tab-setup" data-tab="setup" role="tabpanel" aria-labelledby="tabbtn-setup" hidden>
+    <section class="card">
+      <h2>Game folder</h2>
+      <label class="field" for="wowDir">Your <span class="game">WoW Classic Era</span> folder</label>
+      <input id="wowDir" type="text" autocomplete="off" spellcheck="false" placeholder="C:\Program Files (x86)\World of Warcraft\_classic_era_">
+      <div id="detected" class="choices"></div>
+      <div class="hint">Pick your game folder, or paste it here.
+        <button type="button" id="search">Search again</button></div>
+
+    </section>
+    <section class="card">
+      <h2>Start</h2>
+      <div class="checks"><label><input type="checkbox" id="autostart"> Start with my computer</label></div>
+      <div class="hint" id="autoHint"></div>
+      <div class="checks" id="askFirstRow" hidden><label><input type="checkbox" id="askFirst"> Ask me before updating</label></div>
+    </section>
+  </div>
+  <div class="tabpanel" id="tab-upload" data-tab="upload" role="tabpanel" aria-labelledby="tabbtn-upload" hidden>
+    <section class="card">
+      <h2>What to upload</h2>
+      <div id="cats"></div>
+      <div class="hint">Untick to stop sending. Tick again to send only what's new.</div>
+    </section>
+  </div>
+  <div class="card savebar" id="saveBar" data-tab="setup upload" hidden>
+    <div class="row" style="margin-top:0">
+      <button class="primary" type="submit" id="save">Save</button>
+      <span id="saveMsg" class="hint"></span>
+    </div>
+  </div>
+  </form>
+
+  <div class="tabpanel" id="tab-setupMore" data-tab="setup" hidden>
+  </div>
+  <div class="tabpanel" id="tab-uploadMore" data-tab="upload" hidden>
+    <section class="card" id="settingsCard" hidden>
+      <h2>Settings</h2>
+      <div class="checks"><label><input type="checkbox" id="goldShared"> Share my gold with the guild</label></div>
+      <div class="hint">Turning this off hides your gold right away.</div>
+      <span id="goldMsg" class="hint"></span>
+    </section>
+    <section class="card">
+      <h2>Privacy</h2>
+      <p class="muted" style="margin:0">This app sends what the addon records in game to wowforevertracker.com.
+        You choose what is sent. Nothing else on your computer is read. The app is open source.
+        Read the <a href="https://wowforevertracker.com/privacy" target="_blank" rel="noopener">privacy policy</a>.</p>
+    </section>
+  </div>
+  <div class="tabpanel" id="tab-updates" data-tab="updates" role="tabpanel" aria-labelledby="tabbtn-updates" hidden>
+    <section class="card" id="updatesCard" hidden>
+      <h2>Updates</h2>
+      <p id="updateInfo" class="muted" style="margin:0"></p>
+      <div class="row">
+        <button type="button" id="updateCheck">Check for updates</button>
+        <button type="button" class="primary" id="updateInstall" hidden>Install now</button>
+        <span id="updateMsg" class="hint"></span>
+      </div>
+    </section>
+    <section class="card">
+      <h2>Addon</h2>
+      <p id="addonInfo" class="muted" style="margin:0"></p>
+      <div class="row">
+        <button type="button" id="addonInstall">Reinstall the addon</button>
+        <span id="addonMsg" class="hint"></span>
+      </div>
+    </section>
+  </div>
+  <div class="tabpanel" id="tab-help" data-tab="help" role="tabpanel" aria-labelledby="tabbtn-help" hidden>
+    <section class="card">
+      <h2>Help</h2>
+      <p class="muted" style="margin:0">Something not working? Press <strong>Save logs</strong> and send us the file.</p>
+      <div class="row">
+        <button type="button" class="primary" id="saveLogs">Save logs</button>
+        <span id="logsMsg" class="hint"></span>
+      </div>
+    </section>
+    <section class="card">
+      <h2>Uninstall</h2>
+      <p class="muted" style="margin:0">Removes the app from this computer.</p>
+      <div class="checks"><label><input type="checkbox" id="removeAddon"> Also remove the addon</label></div>
+      <div class="row"><button type="button" id="uninstall">Uninstall</button><span id="uninstallMsg" class="hint"></span></div>
+    </section>
+  </div>
+
+
+
+
+
+
+
+
+
+
+  </div>
+</main>
+<script>
+"use strict";
+const base = location.pathname;
+let status = null;
+let dirty = false;
+
+function el(tag, text, cls) {
+  const e = document.createElement(tag);
+  if (text !== undefined && text !== null) e.textContent = String(text);
+  if (cls) e.className = cls;
+  return e;
+}
+function ago(iso) {
+  if (!iso) return "Never";
+  const d = new Date(iso);
+  const mins = Math.round((Date.now() - d.getTime()) / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return mins + (mins === 1 ? " minute ago" : " minutes ago");
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return hours + (hours === 1 ? " hour ago" : " hours ago");
+  return d.toLocaleString(undefined, { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+}
+async function api(path, body) {
+  const opts = body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+  const r = await fetch(base + path, opts);
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(j.error || ("HTTP " + r.status)), { answer: j });
+  return j;
+}
+
+const GROUPS = [
+  ["Character", ["level", "xp", "played", "session", "talents", "charStats", "spellbook", "spellUse", "collections",
+    "reputations", "currencies", "honor", "kills", "death", "zones", "moments", "dayCounts"]],
+  ["Items and gold", ["gold", "gear", "gearChange", "itemFacts", "inventory", "loot", "sold", "professions"]],
+  ["Quests and dungeons", ["quest", "instance", "lockouts", "fight", "lootHistory", "groupSession", "featsProbe"]],
+  ["Guild", ["guildRoster", "guildLog", "guildInfo", "guildNews", "rankNames", "calendar", "guildChat", "charter"]],
+  ["Other players", ["lootWon", "bgMatch", "inspect", "duel", "sighting", "social"]],
+];
+const TOGETHER = { quest: ["questsDone"] };
+const folded = new Set(Object.values(TOGETHER).flat());
+const boxTypes = cb => cb.dataset.type.split(" ");
+function renderCats(box, categories, testBuild) {
+  categories = categories.filter(c => !c.testOnly || testBuild);
+  box.replaceChildren();
+  box.className = "cats";
+  const byType = Object.fromEntries(categories.map(c => [c.type, c]));
+  const placed = new Set();
+  const group = (title, types) => {
+    const grid = el("div", null, "grid");
+    for (const t of types) {
+      const c = byType[t];
+      if (!c) continue;
+      placed.add(t);
+      const l = el("label"), cb = el("input");
+      const types = [t, ...(TOGETHER[t] || []).filter(x => byType[x])];
+      cb.type = "checkbox"; cb.checked = types.every(x => byType[x].enabled); cb.dataset.type = types.join(" ");
+      l.append(cb, el("span", c.label));
+      grid.append(l);
+    }
+    if (!grid.children.length) return;
+    const g = el("div", null, "group");
+    g.append(el("h3", title), grid);
+    box.append(g);
+  };
+  for (const [title, types] of GROUPS) group(title, types);
+  const rest = categories.map(c => c.type).filter(t => !placed.has(t) && !folded.has(t));
+  if (rest.length) group("Other", rest);
+}
+let wizardFilled = false;
+function renderWizard(s) {
+  const show = !s.consented;
+  document.getElementById("wizard").hidden = !show;
+  document.getElementById("app").hidden = show;
+  if (!show || wizardFilled) return;
+  wizardFilled = true;
+  renderCats(document.getElementById("wizCats"), s.categories, s.testBuild);
+  document.getElementById("wizDir").value = s.wowDir || (s.detected && s.detected[0]) || "";
+  const det = document.getElementById("wizDetected");
+  det.replaceChildren();
+  for (const d of s.detected || []) {
+    const b = el("button", d); b.type = "button";
+    b.onclick = () => { document.getElementById("wizDir").value = d; };
+    det.append(b);
+  }
+  const auto = document.getElementById("wizAuto");
+  auto.checked = s.autostartSupported; auto.disabled = !s.autostartSupported;
+}
+function step(n) {
+  for (const i of [1, 2, 3]) document.getElementById("step" + i).hidden = i !== n;
+  if (n === 3) {
+    document.getElementById("wizSummary").textContent = "Nothing has been sent yet.";
+  }
+  window.scrollTo(0, 0);
+}
+document.getElementById("toStep2").onclick = () => step(2);
+document.getElementById("back1").onclick = () => step(1);
+document.getElementById("toStep3").onclick = () => step(3);
+document.getElementById("back2").onclick = () => step(2);
+document.getElementById("agree").onclick = async (ev) => {
+  const msg = document.getElementById("agreeMsg");
+  const disabled = {};
+  for (const box of document.querySelectorAll("#wizCats input")) if (!box.checked) for (const t of boxTypes(box)) disabled[t] = true;
+  ev.target.disabled = true;
+  msg.textContent = "…"; msg.className = "hint";
+  try {
+    await api("api/settings", {
+      wowDir: document.getElementById("wizDir").value,
+      disabled, autostart: document.getElementById("wizAuto").checked,
+      agree: true, includeExisting: document.getElementById("includeExisting").checked,
+    });
+    msg.textContent = "";
+    showTab("status");
+    await signIn("");
+  } catch (e) {
+    msg.textContent = e.message; msg.className = "hint err";
+  } finally {
+    ev.target.disabled = false;
+  }
+};
+
+const notices = new Map();
+function renderNotice(s) {
+  const fresh = (s.newCategories || []).filter(n => !notices.has(n.type));
+  for (const n of fresh) notices.set(n.type, n);
+  if (fresh.length) api("api/consent/ack", { types: fresh.map(n => n.type), off: [] }).catch(() => {});
+  const box = document.getElementById("notice");
+  box.hidden = notices.size === 0;
+  box.replaceChildren();
+  if (!notices.size) return;
+  box.append(el("strong", "New:"));
+  for (const n of notices.values()) {
+    const row = el("div", null, "item");
+    const off = el("button", "Turn off"); off.type = "button";
+    off.onclick = async () => { await api("api/consent/ack", { types: [n.type], off: [n.type] }); notices.delete(n.type); dirty = false; refresh(); };
+    const keep = el("button", "OK"); keep.type = "button";
+    keep.onclick = () => { notices.delete(n.type); renderNotice(s); };
+    row.append(el("span", n.label), off, keep);
+    box.append(row);
+  }
+}
+
+function renderPlanned(s) {
+  const settings = document.getElementById("settingsCard");
+  settings.hidden = s.goldShared === undefined || s.goldShared === null;
+  if (!settings.hidden) document.getElementById("goldShared").checked = s.goldShared;
+}
+
+function renderSetup(s) {
+  if (dirty) return;
+  const dir = document.getElementById("wowDir");
+  dir.value = s.wowDir || (s.detected && s.detected[0]) || "";
+  renderDetected(s.detected || []);
+  renderCats(document.getElementById("cats"), s.categories, s.testBuild);
+  document.getElementById("askFirstRow").hidden = !s.update;
+  document.getElementById("askFirst").checked = !!(s.update && s.update.askFirst);
+  const auto = document.getElementById("autostart");
+  auto.checked = s.ready ? s.autostart : s.autostartSupported;
+  auto.disabled = !s.autostartSupported;
+  document.getElementById("autoHint").textContent = s.autostartSupported ? ""
+    : "Not available here. Add the app to your startup programs yourself.";
+}
+function renderDetected(list) {
+  const box = document.getElementById("detected");
+  box.replaceChildren();
+  for (const d of list) {
+    const b = el("button", d);
+    b.type = "button";
+    b.onclick = () => { document.getElementById("wowDir").value = d; dirty = true; };
+    box.append(b);
+  }
+  if (!list.length) box.append(el("div", "We couldn't find your game folder.", "hint"));
+}
+
+const ACCOUNT_TEXT = {
+  none: "Sign in with your WoW Forever Tracker account.",
+  signingIn: "Finish signing in in your browser.",
+  signInAgain: "This computer was signed out. Sign in again.",
+  olderCode: "Sign in to link this computer to your account.",
+};
+function renderAccount(s) {
+  const a = s.account || { state: "none" };
+  let text = ACCOUNT_TEXT[a.state] || "";
+  if (a.state === "linked") {
+    text = "Signed in.";
+    if (a.label) text += " This computer: " + a.label + ".";
+  }
+  if (a.state === "signingIn" && REGION_NAME[(a.region || "").toUpperCase()]) text += " Region: " + REGION_NAME[a.region.toUpperCase()] + ".";
+  const accountText = document.getElementById("accountText");
+  accountText.textContent = text;
+  accountText.className = ["none", "signInAgain"].includes(a.state) ? "err" : "";
+  const signing = a.state === "signingIn";
+  document.getElementById("accountCodeBox").hidden = !(signing && a.userCode);
+  if (signing && a.userCode) {
+    document.getElementById("accountCode").textContent = a.userCode;
+    document.getElementById("accountOpen").href = a.verifyUrl || "#";
+  }
+  document.getElementById("signInBtn").hidden = !["none", "signInAgain", "olderCode"].includes(a.state);
+  document.getElementById("cancelBtn").hidden = !signing;
+  const confirming = !document.getElementById("signOutConfirm").hidden;
+  document.getElementById("signOutBtn").hidden = !["linked", "olderCode", "signInAgain"].includes(a.state) || confirming;
+  const regionRow = document.getElementById("regionRow");
+  if (signing) regionRow.hidden = true;
+  document.getElementById("changeRegionBtn").hidden = !a.region || signing || confirming || !regionRow.hidden;
+  const found = (s.regionFound || "").toLowerCase();
+  for (const b of regionRow.querySelectorAll("[data-region]")) {
+    b.setAttribute("aria-pressed", b.dataset.region === a.region ? "true" : "false");
+    b.className = found && b.dataset.region === found ? "primary" : "";
+  }
+  const msg = document.getElementById("accountMsg");
+  if (!msg.dataset.local) { msg.textContent = a.message || ""; msg.className = a.message ? "hint err" : "hint"; }
+}
+async function signIn(region) {
+  const msg = document.getElementById("accountMsg");
+  delete msg.dataset.local;
+  try {
+    await api("api/signin", { region });
+    document.getElementById("regionRow").hidden = true;
+  } catch (e) {
+    if (e.answer && e.answer.regionNeeded) {
+      document.getElementById("regionRow").hidden = false;
+    } else {
+      msg.textContent = e.message; msg.className = "hint err"; msg.dataset.local = "1";
+    }
+  }
+  await refresh();
+}
+document.getElementById("signInBtn").onclick = () => signIn("");
+for (const b of document.querySelectorAll("#regionRow [data-region]")) b.onclick = () => {
+  const a = (status && status.account) || {};
+  if (b.dataset.region === a.region) { document.getElementById("regionRow").hidden = true; refresh(); return; }
+  signIn(b.dataset.region);
+};
+document.getElementById("changeRegionBtn").onclick = () => {
+  document.getElementById("regionRow").hidden = false;
+  document.getElementById("changeRegionBtn").hidden = true;
+};
+document.getElementById("regionCancel").onclick = () => { document.getElementById("regionRow").hidden = true; refresh(); };
+document.getElementById("cancelBtn").onclick = async () => { await api("api/signin/cancel", {}).catch(() => {}); refresh(); };
+document.getElementById("signOutBtn").onclick = () => {
+  document.getElementById("signOutConfirm").hidden = false;
+  document.getElementById("signOutBtn").hidden = true;
+};
+document.getElementById("signOutNo").onclick = () => { document.getElementById("signOutConfirm").hidden = true; refresh(); };
+document.getElementById("signOutYes").onclick = async (ev) => {
+  ev.target.disabled = true;
+  try { await api("api/signout", {}); } catch (e) {
+    const msg = document.getElementById("accountMsg");
+    msg.textContent = e.message; msg.className = "hint err"; msg.dataset.local = "1";
+  } finally {
+    ev.target.disabled = false;
+    document.getElementById("signOutConfirm").hidden = true;
+    refresh();
+  }
+};
+const JUST_DONE = 8000;
+let fastRefresh = null;
+function justDone(s) {
+  const p = s.progress;
+  return !!(p && !p.active && p.finishedAt && Date.now() - new Date(p.finishedAt).getTime() < JUST_DONE);
+}
+function renderProgress(s, waiting) {
+  const p = s.progress;
+  const active = !!(p && p.active && p.total);
+  const done = justDone(s);
+  document.getElementById("progressBox").hidden = !(waiting > 0 || active || done);
+  const pct = active ? Math.min(100, Math.round(100 * p.sent / p.total)) : done && !waiting ? 100 : 0;
+  document.getElementById("progressFill").style.width = pct + "%";
+  document.getElementById("progressBar").setAttribute("aria-valuenow", pct);
+  if ((active || done) && !fastRefresh) fastRefresh = setTimeout(() => { fastRefresh = null; refresh(); }, 1000);
+}
+const REGION_NAME = { EU: "Europe", US: "Americas" };
+function wrongRegionLine(s) {
+  const found = REGION_NAME[s.regionFound], used = REGION_NAME[s.region];
+  if (found && used && s.regionFound !== s.region) {
+    return "Your game is in " + found + ". This app uploads to " + used + ". Press Change region and choose " + found + ".";
+  }
+  return "Your uploads are for another region. Press Change region.";
+}
+function playerState(s, waiting) {
+  const a = s.account || {};
+  if (a.state === "none" || a.state === "signingIn") return ["Not signed in", "bad", "Sign in to start uploading."];
+  if (a.state === "signInAgain") return ["Sign in again", "bad", "This computer was signed out. Sign in again to keep uploading."];
+  if (!s.ready) return ["Not set up", "wait", "Finish setting up to start uploading."];
+  if (s.wrongRegion) return ["Wrong region", "bad", wrongRegionLine(s)];
+  if (s.progress && s.progress.active) return ["Uploading", "wait", "Uploading."];
+  if (s.problem === "offline") return ["Can't connect", "bad", "Check your internet. We'll keep trying."];
+  if (s.problem === "update") return ["Upload failed", "bad", "Go to Updates and install the latest version."];
+  if (s.problem === "server") return ["Upload failed", "bad", "We'll try again soon."];
+  if (s.notKept) return ["Not kept", "bad", "Your last upload was not kept. Go to Help, press Save logs and send us the file."];
+  if (waiting) return ["Waiting", "wait", "Waiting to upload."];
+  return ["Up to date", "ok", "Up to date."];
+}
+function renderStatus(s) {
+  renderAccount(s);
+  const waiting = s.categories.reduce((n, c) => n + (c.enabled ? c.pending : 0), 0);
+  const [label, kind, line] = playerState(s, waiting);
+  const pill = document.getElementById("pill");
+  pill.textContent = label; pill.className = "pill " + kind;
+  const heading = document.getElementById("stateHeading");
+  heading.textContent = label; heading.className = kind === "bad" ? "err" : "";
+  const stateLine = document.getElementById("stateLine");
+  stateLine.hidden = kind !== "bad";
+  stateLine.textContent = line; stateLine.className = "err";
+  renderProgress(s, waiting);
+
+  const facts = document.getElementById("facts");
+  facts.replaceChildren();
+  const add = (k, v) => facts.append(el("dt", k), el("dd", v));
+  add("Region", s.region === "EU" ? "Europe" : s.region === "US" ? "Americas" : "Not set");
+  add("Last upload", ago(s.lastUpload));
+  add("Last check", ago(s.lastScan));
+  add("Version", s.version);
+
+  const banner = document.getElementById("banner");
+  const a = s.account || {};
+  const signedOut = ["none", "signingIn", "signInAgain"].includes(a.state);
+  const msg = s.error || s.message;
+  banner.hidden = !msg;
+  banner.className = "card banner" + (s.error || signedOut ? " error" : "");
+  banner.classList.toggle("err", signedOut && !s.error);
+  banner.textContent = msg || "";
+
+  const info = document.getElementById("addonInfo");
+  if (!s.addonsDir) info.textContent = "Choose your game folder first.";
+  else if (!s.addonVersion) info.textContent = "The addon isn't installed.";
+  else if (s.addonSource === "curseforge") info.textContent = "CurseForge keeps your addon up to date.";
+  else info.textContent = "The addon is installed.";
+  if (s.legacyAddon) info.textContent += " An old copy of the addon is still installed. Delete it from your AddOns folder.";
+
+  const card = document.getElementById("updatesCard");
+  card.hidden = !s.update;
+  if (s.update) {
+    const u = s.update;
+    const parts = [u.staged ? "An update is ready. It installs in a moment."
+      : u.available ? "An update is available." : "You have the latest version."];
+    if (u.lastFailure || u.lastError) parts.push("We couldn't check for updates. We'll try again.");
+    document.getElementById("updateInfo").textContent = parts.join(" ");
+    document.getElementById("updateInstall").hidden = !(u.available && u.askFirst && !u.staged);
+  }
+
+  renderPlanned(s);
+}
+
+function game() { return (status && status.gameName) || "WoW Classic Era"; }
+
+const TABS = ["status", "setup", "upload", "updates", "help"];
+function showTab(name, focus) {
+  if (!TABS.includes(name)) name = "status";
+  for (const b of document.querySelectorAll(".tabs [role=tab]")) {
+    const on = b.dataset.tab === name;
+    b.setAttribute("aria-selected", on ? "true" : "false");
+    b.tabIndex = on ? 0 : -1;
+    if (on && focus) b.focus();
+  }
+  for (const p of document.querySelectorAll("#app [data-tab]:not([role=tab])")) {
+    p.hidden = !p.dataset.tab.split(" ").includes(name);
+  }
+  if (location.hash.slice(1) !== name) history.replaceState(null, "", "#" + name);
+}
+for (const b of document.querySelectorAll(".tabs [role=tab]")) b.onclick = () => showTab(b.dataset.tab);
+document.querySelector(".tabs").addEventListener("keydown", (ev) => {
+  const i = TABS.indexOf((document.activeElement && document.activeElement.dataset.tab) || "");
+  if (i < 0) return;
+  const step = { ArrowRight: 1, ArrowLeft: -1 }[ev.key];
+  if (step) { ev.preventDefault(); showTab(TABS[(i + step + TABS.length) % TABS.length], true); }
+});
+function markTabs(s) {
+  const mark = (tab, on) => {
+    const b = document.getElementById("tabbtn-" + tab);
+    let d = b.querySelector(".dot");
+    if (on && !d) { d = el("span", null, "dot"); d.setAttribute("aria-label", "needs attention"); b.append(d); }
+    if (!on && d) d.remove();
+  };
+  mark("status", !!(s.account && ["none", "signInAgain"].includes(s.account.state)) || !!s.wrongRegion || !!s.notKept);
+  mark("setup", !s.wowDir);
+  mark("updates", !!(s.update && s.update.available));
+}
+window.addEventListener("hashchange", () => showTab(location.hash.slice(1)));
+showTab(location.hash.slice(1));
+
+async function refresh() {
+  try {
+    status = await api("api/status");
+    for (const e of document.querySelectorAll(".game")) e.textContent = game();
+    renderWizard(status);
+    if (!status.consented) {
+      const pill = document.getElementById("pill");
+      pill.textContent = "Not set up"; pill.className = "pill wait";
+      return;
+    }
+    renderNotice(status);
+    renderSetup(status);
+    renderStatus(status);
+    markTabs(status);
+  } catch (e) {
+    const pill = document.getElementById("pill");
+    pill.textContent = "App stopped"; pill.className = "pill bad";
+  }
+}
+
+document.getElementById("setup").addEventListener("input", () => { dirty = true; });
+document.getElementById("setup").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const msg = document.getElementById("saveMsg");
+  const disabled = {};
+  for (const box of document.querySelectorAll("#cats input")) if (!box.checked) for (const t of boxTypes(box)) disabled[t] = true;
+  document.getElementById("save").disabled = true;
+  try {
+    await api("api/settings", {
+      wowDir: document.getElementById("wowDir").value,
+      disabled, autostart: document.getElementById("autostart").checked,
+      askFirst: document.getElementById("askFirst").checked,
+    });
+    dirty = false;
+    msg.textContent = "Saved.";
+    msg.className = "hint";
+    await refresh();
+  } catch (e) {
+    msg.textContent = e.message;
+    msg.className = "hint err";
+  } finally {
+    document.getElementById("save").disabled = false;
+  }
+});
+document.getElementById("search").onclick = async () => {
+  const r = await api("api/detect", {});
+  renderDetected(r.detected || []);
+};
+document.getElementById("syncNow").onclick = async (ev) => {
+  const msg = document.getElementById("syncMsg");
+  ev.target.disabled = true;
+  msg.textContent = "Uploading…"; msg.className = "hint";
+  await api("api/sync", {}).catch(() => {});
+  setTimeout(async () => {
+    await refresh();
+    ev.target.disabled = false;
+    msg.textContent = status && (status.problem || status.notKept || status.wrongRegion) ? "" : "Done.";
+    setTimeout(() => { msg.textContent = ""; }, 5000);
+  }, 2500);
+};
+async function action(button, path, body, msgId, ok) {
+  const msg = document.getElementById(msgId);
+  button.disabled = true;
+  msg.textContent = "…"; msg.className = "hint";
+  try {
+    const r = await api(path, body);
+    msg.textContent = ok(r);
+  } catch (e) {
+    msg.textContent = e.message; msg.className = "hint err";
+  } finally {
+    button.disabled = false;
+  }
+}
+document.getElementById("saveLogs").onclick = (ev) => action(ev.target, "api/savelogs", {}, "logsMsg",
+  r => /Desktop$/i.test(r.folder) ? "Saved to your desktop." : "Saved.");
+document.getElementById("addonInstall").onclick = (ev) => action(ev.target, "api/addon", {}, "addonMsg", r => { refresh(); return r.message; });
+document.getElementById("updateCheck").onclick = (ev) => action(ev.target, "api/update/check", {}, "updateMsg",
+  () => { setTimeout(refresh, 3000); return "Checking…"; });
+document.getElementById("updateInstall").onclick = (ev) => action(ev.target, "api/update/install", {}, "updateMsg",
+  () => "Installing. The app restarts in a moment.");
+document.getElementById("goldShared").onchange = async (ev) => {
+  const msg = document.getElementById("goldMsg");
+  try {
+    await api("api/privacy", { goldShared: ev.target.checked });
+    msg.textContent = ""; msg.className = "hint";
+  } catch (e) {
+    ev.target.checked = !ev.target.checked;
+    msg.textContent = e.message; msg.className = "hint err";
+  }
+};
+document.getElementById("uninstall").onclick = async (ev) => {
+  if (!confirm("Uninstall the app?")) return;
+  await action(ev.target, "api/uninstall", { removeAddon: document.getElementById("removeAddon").checked }, "uninstallMsg",
+    () => "Uninstalled. You can close this page.");
+};
+document.getElementById("quit").onclick = async () => {
+  if (!confirm("Stop the app? Uploads stop until you start it again.")) return;
+  await api("api/quit", {}).catch(() => {});
+  document.getElementById("pill").textContent = "App stopped";
+};
+
+refresh();
+setInterval(refresh, 4000);
+</script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    outputs:
+      exe-artifact-id: ${{ steps.upload-exe.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: The tag matches VERSION
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: test "v$(tr -d '[:space:]' < VERSION)" = "$GITHUB_REF_NAME"
+      - name: Reproducible build
+        env:
+          CONTAINER: docker
+          SIGNED: ${{ (startsWith(github.ref, 'refs/tags/v') && vars.SIGNPATH_ORGANIZATION_ID != '') && 'true' || 'false' }}
+        run: scripts/build-repro.sh
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: wft-companion-unsigned
+          path: |
+            dist/repro/*.exe
+            dist/repro/*.zip
+            dist/repro/SHA256SUMS
+            dist/repro/BUILD-INFO.txt
+          if-no-files-found: error
+      - id: upload-exe
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: wft-companion-exe
+          path: dist/repro/*.exe
+          if-no-files-found: error
+
+  scan:
+    needs: [build]
+    runs-on: windows-2025
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: wft-companion-unsigned
+          path: build
+      - name: Defender scan
+        shell: pwsh
+        run: |
+          $mp = Join-Path $env:ProgramFiles 'Windows Defender\MpCmdRun.exe'
+          New-Item -ItemType Directory -Force scan | Out-Null
+          & $mp -SignatureUpdate *>&1 | Tee-Object -FilePath scan/signature-update.txt
+          if ($LASTEXITCODE -ne 0) {
+            & $mp -SignatureUpdate -MMPC *>&1 | Tee-Object -FilePath scan/signature-update.txt -Append
+            if ($LASTEXITCODE -ne 0) { throw "Defender signature update failed ($LASTEXITCODE)" }
+          }
+          Get-MpComputerStatus | Select-Object AMEngineVersion, AMProductVersion, AntivirusSignatureVersion, AntivirusSignatureLastUpdated | Format-List | Out-File scan/defender-version.txt
+          Get-Content scan/defender-version.txt
+          $files = Get-ChildItem build -File -Include *.exe, *.zip -Recurse
+          if ($files.Count -lt 2) { throw "expected the exe and the addon zip in the build artifact" }
+          $files | Get-FileHash -Algorithm SHA256 | ForEach-Object { "{0}  {1}" -f $_.Hash.ToLower(), (Split-Path $_.Path -Leaf) } | Out-File scan/SHA256SUMS -Encoding ascii
+          Get-Content scan/SHA256SUMS
+          $found = $false
+          foreach ($f in $files) {
+            "== $($f.Name)" | Tee-Object -FilePath scan/scan.txt -Append
+            & $mp -Scan -ScanType 3 -File $f.FullName -DisableRemediation *>&1 | Tee-Object -FilePath scan/scan.txt -Append
+            switch ($LASTEXITCODE) {
+              0 { "no threats found in $($f.Name)" | Tee-Object -FilePath scan/scan.txt -Append }
+              2 { "THREAT FOUND in $($f.Name)" | Tee-Object -FilePath scan/scan.txt -Append; $found = $true }
+              default { throw "the Defender scan of $($f.Name) did not run ($LASTEXITCODE)" }
+            }
+          }
+          if ($found) { throw "Microsoft Defender found a threat; see scan/scan.txt" }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: wft-companion-defender-scan
+          path: scan/
+          if-no-files-found: error
+
+  sign:
+    needs: [build, scan]
+    if: startsWith(github.ref, 'refs/tags/v') && vars.SIGNPATH_ORGANIZATION_ID != ''
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: signpath/github-action-submit-signing-request@c92b958760219087e01f8d67a1669ed57afe2627
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
+          github-artifact-id: ${{ needs.build.outputs.exe-artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: wft-companion-signed
+          path: signed/
+          if-no-files-found: error

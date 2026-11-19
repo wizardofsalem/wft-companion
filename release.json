@@ -1,0 +1,9 @@
+{
+  "company": "WoW Forever Tracker",
+  "product": "WFT Companion",
+  "description": "WFT Companion",
+  "exe": "WFTCompanion.exe",
+  "signer": "SignPath Foundation",
+  "signingRoot": "GlobalSign Code Signing Root R45",
+  "baseURL": "https://wowforevertracker.com/downloads/companion"
+}
